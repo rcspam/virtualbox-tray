@@ -1,9 +1,10 @@
-#### virtualbox-tray   #####
+                  #### virtualbox-tray   #####
+                  
 A simple tray app to launch your virtualbox vm from tray
 No need setting. It find vm it-self.
 Just additional package 'yad'
 
-# Installation
+### Installation
   * You must install 'yad':  sudo apt-get/yum install yad
   * Install icons in your "$HOME/.icons" directory:
   * Install the script 'virtualbox-tray' in your PATH (ie: $HOME/bin)
