@@ -1,1 +1,129 @@
-/home/rapha/bin/virtualbox-tray
+#!/bin/bash
+# tray-icon avec la liste des machines virtuelles de VirtualBox pouvant être lancée
+# Necessite 'yad'
+
+TMP_FILE="/tmp/vm_list"
+VBOX="/usr/bin/VirtualBox"
+VBOXMANAGE="/usr/bin/vboxmanage"
+
+"${VBOXMANAGE}" list -l vms | sed '/USB Device/,/Configured/ d' | sed -n '/Name:  /s/Name:\s*//p;/Guest OS/s/Guest OS:\s*//p' | sed '$!N;s/\n/%/' > "${TMP_FILE}"
+
+##### CREATION DE L'ICONE DE NOTIFICATION
+PIPE="/tmp/${0##*/}-$$-pipe"
+mkfifo ${PIPE}
+exec 3<> ${PIPE}
+
+yad --notification \
+    --listen \
+    --image="/usr/share/pixmaps/virtualbox.png" \
+    --text="Lancer une machine virtuelle VirtualBox" \
+    --item-separator ":" \
+    --command="${VBOX}" 2>/dev/null <&3 & pid="$!"
+
+sleep 1
+
+##### MENU DE L'ICONE DE NOTIFICATION
+TRAY_MENU_HEAD='menu:Liste des machines virtuelles'
+TRAY_SEP=""
+# MISE EN FORME DES MENUS DYNAMIQUE DU TRAY ICON
+NUM=0
+while read line
+do
+    NUM=$((NUM+1))
+    NOM=$(echo $line | cut -d'%' -f1)
+    OS=$(echo $line | cut -d'%' -f2)
+    
+    case $OS in
+        Linux*)
+                PNG="linux-logo" #
+                ;;
+        Ubuntu*)
+                PNG="ubuntu" #
+                ;;
+        Debian*)
+                PNG="debian" #
+                ;;
+        Red\ Hat*)
+                PNG="redhat" #
+                ;;
+        openSuse*)
+                PNG="opensuse" #
+                ;;
+        Turbolinux*)
+                PNG="turbolinux" #
+                ;;
+        Mandriva*)
+                PNG="mandriva" #
+                ;;
+        Gentoo*)
+                PNG="gentoo" #
+                ;;
+        Fedora*)
+                PNG="fedora" #
+                ;;
+        Xandros*)
+                PNG="xandros" #
+                ;;
+        Oracle\ \(*)
+                PNG="oraclelinux" #
+                ;;
+        Other\ Linux*)
+                PNG="linux-logo" #
+                ;;
+        Windows\ 7*)
+                PNG="win7" #
+                ;;
+        Windows\ 8*)
+                PNG="win8" #
+                ;;
+        Windows\ 8.1*)
+                PNG="win8.1" #
+                ;;
+        Windows\ 10*)
+                PNG="win10" #
+                ;;
+        Windows\ XP*)
+                PNG="winlogo" #
+                ;;
+        Mac\ OS\ X*)
+                PNG="osx" #
+                ;;
+        FreeBSD*)
+                PNG="freebsd" #
+                ;;
+        OpenBSD*)
+                PNG="openbsd" #
+                ;;
+        NetBSD*)
+                PNG="netbsd" #
+                ;;
+        *Solaris*)
+                PNG="solaris" #
+                ;;
+        *OS\/2*)
+                PNG="os2" #
+                ;;
+        eComStation*)
+                PNG="ecomstation" #
+                ;;
+        DOS*)
+                PNG="dos" #
+                ;;
+        Netware*)
+                PNG="netware" #
+                ;;
+        *)
+                PNG="gtk-help" #
+                ;;
+    esac
+    
+    ### VARIABLES DYNAMIQUES !!!
+    declare "TRAY_MENU_${NUM}=$NOM:'${VBOX}' --startvm '$NOM':${PNG}"
+    var="TRAY_MENU_$NUM"
+    TRAY_MENU_LIST="${TRAY_MENU_LIST}|${!var}"
+    #echo $NOM -- $OS -- $PNG # DEBUG
+done < "${TMP_FILE}"
+
+TRAY_MENU_QUIT="Quitter:quit:stock_exit"
+echo "${TRAY_MENU_HEAD}|${TRAY_SEP}${TRAY_MENU_LIST}|${TRAY_MENU_QUIT}" >&3
+##### /MENU DE L'ICONE DE NOTIFICATION
