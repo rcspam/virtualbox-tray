@@ -1,10 +1,11 @@
 #!/bin/bash
-# tray-icon avec la liste des machines virtuelles de VirtualBox pouvant être lancée
-# Necessite 'yad'
+# tray-icon for VirtualBox
+# 'yad'(zenity like) is needed
 
 TMP_FILE="/tmp/vm_list"
 VBOX="/usr/bin/VirtualBox"
 VBOXMANAGE="/usr/bin/vboxmanage"
+VBOX_ICON="/usr/share/pixmaps/virtualbox.png"
 
 "${VBOXMANAGE}" list -l vms | sed '/USB Device/,/Configured/ d' | sed -n '/Name:  /s/Name:\s*//p;/Guest OS/s/Guest OS:\s*//p' | sed '$!N;s/\n/%/' > "${TMP_FILE}"
 
@@ -15,22 +16,22 @@ exec 3<> ${PIPE}
 
 yad --notification \
     --listen \
-    --image="/usr/share/pixmaps/virtualbox.png" \
-    --text="Lancer une machine virtuelle VirtualBox" \
+    --image="${VBOX_ICON}" \
+    --text="Launch a VirtualBox guest host" \
     --item-separator ":" \
     --command="${VBOX}" 2>/dev/null <&3 & pid="$!"
 
 sleep 1
 
-##### MENU DE L'ICONE DE NOTIFICATION
-TRAY_MENU_HEAD='menu:Liste des machines virtuelles'
+##### TRAY MENU
+TRAY_MENU_HEAD='menu:Guest hosts list'
 TRAY_SEP=""
-# MISE EN FORME DES MENUS DYNAMIQUE DU TRAY ICON
+# SET 'THE GUEST HOSTS' MENU
 NUM=0
 while read line
 do
     NUM=$((NUM+1))
-    NOM=$(echo $line | cut -d'%' -f1)
+    NAME=$(echo $line | cut -d'%' -f1)
     OS=$(echo $line | cut -d'%' -f2)
     
     case $OS in
@@ -117,13 +118,13 @@ do
                 ;;
     esac
     
-    ### VARIABLES DYNAMIQUES !!!
-    declare "TRAY_MENU_${NUM}=$NOM:'${VBOX}' --startvm '$NOM':${PNG}"
+    ### DYNAMIQUE VARS !!!
+    declare "TRAY_MENU_${NUM}=$NAME:'${VBOX}' --startvm '$NAME':${PNG}"
     var="TRAY_MENU_$NUM"
     TRAY_MENU_LIST="${TRAY_MENU_LIST}|${!var}"
-    #echo $NOM -- $OS -- $PNG # DEBUG
+    #echo $NAME -- $OS -- $PNG # DEBUG
 done < "${TMP_FILE}"
 
-TRAY_MENU_QUIT="Quitter:quit:stock_exit"
+TRAY_MENU_QUIT="Quit:quit:stock_exit"
 echo "${TRAY_MENU_HEAD}|${TRAY_SEP}${TRAY_MENU_LIST}|${TRAY_MENU_QUIT}" >&3
-##### /MENU DE L'ICONE DE NOTIFICATION
+##### /TRAY MENU
