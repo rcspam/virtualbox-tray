@@ -1,4 +1,4 @@
-          #### virtualbox-tray   #####
+#### virtualbox-tray   #####
 A simple tray app to launch your virtualbox vm from tray
 No need setting. It find vm it-self.
 Just additional package 'yad'
