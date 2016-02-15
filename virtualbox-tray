@@ -1,37 +1,72 @@
 #!/bin/bash
-# tray-icon for VirtualBox
-# 'yad'(zenity like) is needed
+# tray-icon with VirtualBox virtual hosts to launch list
+# 'yad' is needed
 
+function preferences () {
+	AUTOSTART_FILE="$HOME/.config/autostart/virtualbox-tray.desktop"
+	CHECK=$(cat ${AUTOSTART_FILE} | grep X-GNOME-Autostart | awk -F'=' '{print $2}')
+	if yad --center --on-top --title="Preferences" --form --field="Start automaticaly at session login\::CHK" $CHECK | egrep -qi "true";then
+		sed -i 's/X-GNOME-Autostart-enabled=false/X-GNOME-Autostart-enabled=true/' ${AUTOSTART_FILE}
+	else
+		sed -i 's/X-GNOME-Autostart-enabled=true/X-GNOME-Autostart-enabled=false/' ${AUTOSTART_FILE}
+	fi
+}
+
+export -f preferences
+
+AUTOSTART_FILE="$HOME/.config/autostart/virtualbox-tray.desktop"
 TMP_FILE="/tmp/vm_list"
 VBOX="/usr/bin/VirtualBox"
 VBOXMANAGE="/usr/bin/vboxmanage"
-VBOX_ICON="/usr/share/pixmaps/virtualbox.png"
+VIRTUALBOX_ICON="/usr/share/pixmaps/virtualbox.png"
 
-"${VBOXMANAGE}" list -l vms | sed '/USB Device/,/Configured/ d' | sed -n '/Name:  /s/Name:\s*//p;/Guest OS/s/Guest OS:\s*//p' | sed '$!N;s/\n/%/' > "${TMP_FILE}"
+# create autostart file
+[[ -e ${AUTOSTART_FILE} ]] || cat > "${AUTOSTART_FILE}" <<EOF 
+[Desktop Entry]
+Type=Application
+Exec=virtualbox-tray
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name[fr_FR]=VirtualBox Tray Launcher
+Name=VirtualBox Tray Launcher
+Comment[fr_FR]=VirtualBox tray launcher
+Comment=VirtualBox tray launcher
+Icon=/usr/share/pixmaps/virtualbox.png
+EOF
 
-##### CREATION DE L'ICONE DE NOTIFICATION
+
+# Launch with preferences window open first
+[[ $1 == "-p" || $1 == "--preferences" ]] && preferences
+
+# Search virtual hosts to create list
+"${VBOXMANAGE}" list -l vms | sed '/USB Device/,/Configured/ d' \
+							| sed -n '/Name:  /s/Name:\s*//p;/Guest OS/s/Guest OS:\s*//p' \
+							| sed '$!N;s/\n/%/' > "${TMP_FILE}"
+
+##### CREATE TRAY ICON
 PIPE="/tmp/${0##*/}-$$-pipe"
 mkfifo ${PIPE}
 exec 3<> ${PIPE}
 
 yad --notification \
     --listen \
-    --image="${VBOX_ICON}" \
-    --text="Launch a VirtualBox guest host" \
+    --image="$VIRTUALBOX_ICON" \
+    --text="Lancer une machine virtuelle VirtualBox" \
     --item-separator ":" \
     --command="${VBOX}" 2>/dev/null <&3 & pid="$!"
 
 sleep 1
 
-##### TRAY MENU
-TRAY_MENU_HEAD='menu:Guest hosts list'
+##### TRAY ICON MENU
+TRAY_MENU_HEAD='menu:Liste des machines virtuelles'
 TRAY_SEP=""
-# SET 'THE GUEST HOSTS' MENU
+# SETUP TRAY ICON DYNAMIC MENU
 NUM=0
 while read line
 do
     NUM=$((NUM+1))
-    NAME=$(echo $line | cut -d'%' -f1)
+    NOM=$(echo $line | cut -d'%' -f1)
     OS=$(echo $line | cut -d'%' -f2)
     
     case $OS in
@@ -118,13 +153,15 @@ do
                 ;;
     esac
     
-    ### DYNAMIQUE VARS !!!
-    declare "TRAY_MENU_${NUM}=$NAME:'${VBOX}' --startvm '$NAME':${PNG}"
+    ###  DYNAMIC VARIABLES !!!
+    declare "TRAY_MENU_${NUM}=$NOM:'${VBOX}' --startvm '$NOM':${PNG}"
     var="TRAY_MENU_$NUM"
     TRAY_MENU_LIST="${TRAY_MENU_LIST}|${!var}"
-    #echo $NAME -- $OS -- $PNG # DEBUG
+    #echo $NOM -- $OS -- $PNG # DEBUG
 done < "${TMP_FILE}"
 
-TRAY_MENU_QUIT="Quit:quit:stock_exit"
-echo "${TRAY_MENU_HEAD}|${TRAY_SEP}${TRAY_MENU_LIST}|${TRAY_MENU_QUIT}" >&3
-##### /TRAY MENU
+TRAY_MENU_LAUNCH_VB="VirtualBox Manager:${VBOX}:virtualbox-20.png"
+TRAY_MENU_PREF="Preferences:bash -c 'preferences':configure"
+TRAY_MENU_QUIT="Quitter:quit:stock_exit"
+echo "${TRAY_MENU_HEAD}|${TRAY_SEP}${TRAY_MENU_LIST}|${TRAY_SEP}|$TRAY_MENU_LAUNCH_VB|$TRAY_MENU_PREF|${TRAY_MENU_QUIT}" >&3
+##### /TRAY ICON MENU
