@@ -1,17 +1,27 @@
-                  #### virtualbox-tray   #####
-                  
-A simple tray bash script to launch your virtualbox guest hosts from tray for Linux
-It display an icon in tray.
+          #### virtualbox-tray   #####
+A simple bash script to launch your virtualbox vm from tray
+No need hand setting. It find vm it-self.
+Just additional package 'yad'
 
-A left click to launch guest hosts.
-A right clic to launch VirtualBox it-self
 
-No need setting. It find guest hosts it-self.
+Just install it with launching in a terminal:
+	# On Debian based
+	$ sudo apt-get install yad
+	# On Red-Hat based
+	$ sudo yum install yad
+	
+	$ ./install.sh
 
-### Dependences
-  * YAD: sudo apt-get/yum install yad
 
-### Installation  
-  * Install OS icons in your "$HOME/.icons" directory: 
-  * Install the script 'virtualbox-tray' in your PATH (ie: $HOME/bin)
-    and if it is not the case, make it 'executable'
+Or if you need a manual installation
+  * You must install 'yad':
+	$ sudo apt-get install yad # Debian based
+		or
+	$ sudo yum install yad # Red-Hat based
+  * Copy icons in your local icons directory ("$HOME/.local/share/icons" or "$HOME/.icons"):
+	$ cp icons/* $HOME/.local/share/icons/
+  * Copy the script 'virtualbox-tray' in your PATH (ie: $HOME/bin) and if it is not the case, make it 'executable':
+	$ cp virtualbox-tray $HOME/bin/
+	$ chmod +x $HOME/bin/virtualbox-tray
+  * Launch 'virtualbox-tray'
+	$ virtualbox-tray
